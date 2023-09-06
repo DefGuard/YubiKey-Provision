@@ -6,3 +6,16 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+log = "0.4"
+env_logger = "0.9"
+prost = "0.11"
+serde = { version = "1.0.188", features = ["derive"] }
+tonic = { version = "0.9", features = ["gzip", "tls", "tls-roots"] }
+clap = { version = "4.3", features = ["derive", "env"] }
+toml = "0.7.6"
+thiserror = "1.0.48"
+
+
+[build-dependencies]
+tonic-build = { version = "0.9" }
+prost-build = { version = "0.11" }
