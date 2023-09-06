@@ -1,4 +1,4 @@
-use crate::proto::worker_service_client::WorkerServiceClient;
+use crate::config::Config;
 
 #[derive(Clone)]
 struct Worker {
