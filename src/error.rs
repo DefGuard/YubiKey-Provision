@@ -40,19 +40,19 @@ impl From<Status> for WorkerError {
 }
 
 impl From<std::io::Error> for WorkerError {
-    fn from(value: std::io::Error) -> Self {
+    fn from(_value: std::io::Error) -> Self {
         WorkerError::IO
     }
 }
 
 impl From<Utf8Error> for WorkerError {
-    fn from(value: Utf8Error) -> Self {
+    fn from(_value: Utf8Error) -> Self {
         WorkerError::UTF8Conversion
     }
 }
 
 impl From<FromUtf8Error> for WorkerError {
-    fn from(value: FromUtf8Error) -> Self {
+    fn from(_value: FromUtf8Error) -> Self {
         WorkerError::UTF8Conversion
     }
 }

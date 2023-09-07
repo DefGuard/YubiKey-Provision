@@ -13,7 +13,7 @@ pub struct Config {
     #[arg(long, env = "WORKER_ID", default_value = "YubiBridge")]
     pub worker_id: String,
 
-    /// Logging level
+    /// Logging level, needs to be compatible with log crate log::LevelFilter::from_str
     #[arg(long, env = "LOG_LEVEL", default_value = "info")]
     pub log_level: String,
 

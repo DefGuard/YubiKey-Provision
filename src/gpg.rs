@@ -8,15 +8,15 @@ use std::{
     process::{Child, Command, Stdio},
 };
 
+use log::{debug, info};
 use serde::Serialize;
 use tokio::time::interval;
 
 use crate::config::Config;
 use crate::error::WorkerError;
-use crate::proto::{GetJobResponse, self};
+use crate::proto;
 
 pub const ADMIN_PIN: &str = "12345678";
-pub const USER_PIN: &str = "123456";
 
 pub fn card_info_args(name: &str, email: &str) -> String {
     format!(
@@ -208,9 +208,9 @@ pub fn get_fingerprint() -> Result<String, WorkerError> {
 
 #[derive(Serialize, Debug)]
 pub struct ProvisioningInfo {
-    pgp: String,
-    ssh: String,
-    fingerprint: String,
+    pub pgp: String,
+    pub ssh: String,
+    pub fingerprint: String,
 }
 
 pub async fn provision_key(
@@ -218,25 +218,33 @@ pub async fn provision_key(
     job: &proto::GetJobResponse,
 ) -> Result<ProvisioningInfo, WorkerError> {
     let full_name = format!("{} {}", job.first_name, job.last_name);
+    info!("Provisioning start for: {}", &job.email);
     let check_duration = Duration::from_secs(config.smartcard_retry_interval);
     let mut check_interval = interval(check_duration);
     loop {
         match check_card() {
             Ok(_) => break,
             Err(e) => match e {
-                WorkerError::NoKeysFound => {}
+                WorkerError::NoKeysFound => {
+                    info!("No keys found, waiting...");
+                }
                 _ => return Err(e),
             },
         }
         check_interval.tick().await;
     }
+    debug!("Key found");
     let (gpg_home, mut gpg_process) = init_gpg()?;
+    debug!("Temporary GPG session crated");
     factory_reset_key()?;
+    debug!("OpenPGP Key app restored to factory.");
     gen_key(&gpg_home, &full_name, &job.email)?;
+    debug!("OpenPGP key for {} created", &job.email);
     let fingerprint = get_fingerprint()?;
     let pgp = export_public(&gpg_home, &job.email)?;
     let ssh = export_ssh(&gpg_home, &job.email)?;
     key_to_card(&gpg_home, &job.email)?;
+    debug!("Subkeys saved in yubikey");
     // cleanup after provisioning
     match gpg_process.kill() {
         Ok(_) => {}
@@ -250,6 +258,8 @@ pub async fn provision_key(
             return Err(WorkerError::GPGSessionEnd);
         }
     }
+    debug!("Temporary GPG session cleared and closed");
+    info!("Yubikey openpgp provisioning completed.");
     Ok(ProvisioningInfo {
         pgp,
         ssh,
