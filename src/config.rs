@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, path::PathBuf};
 
 use clap::Parser;
 use serde::Deserialize;
@@ -9,6 +9,9 @@ use crate::error::WorkerError;
 #[derive(Debug, Parser, Clone, Deserialize)]
 #[clap(about = "Defguard YubiKey Provisioning service")]
 pub struct Config {
+    // CA Used for GRPC connection
+    #[arg(long, env = "GRPC_CA")]
+    pub grpc_ca: Option<PathBuf>,
     /// Worker id
     #[arg(long, env = "WORKER_ID", default_value = "YubiBridge")]
     pub worker_id: String,
@@ -21,16 +24,12 @@ pub struct Config {
     #[arg(long, env = "URL", default_value = "localhost:50055")]
     pub url: String,
 
-    /// Number of seconds in which worker pings DefGuard for data provision
-    #[arg(long, env = "JOB_INTERVAL", default_value = "2")]
-    pub job_interval: u64,
-
-    /// Number of retries in case if there are no smartcards
-    #[arg(long, env = "SMARTCARD_RETRIES", default_value = "1")]
+    /// Number of retries in case if there are no keys detected
+    #[arg(long, env = "YUBIKEY_RETRIES", default_value = "1")]
     pub smartcard_retries: u64,
 
-    /// Number of seconds before checking for smartcard again
-    #[arg(long, env = "SMARTCARD_RETRY_INTERVAL", default_value = "15")]
+    /// Number of seconds before checking for key again
+    #[arg(long, env = "YUBIKEY_RETRY_INTERVAL", default_value = "15")]
     pub smartcard_retry_interval: u64,
 
     /// Token from Defguard available on Provisioning page
@@ -54,11 +53,11 @@ impl Default for Config {
             worker_id: "YubiBridge".into(),
             log_level: "INFO".into(),
             url: "localhost:50055".into(),
-            job_interval: 2,
             smartcard_retries: 1,
             smartcard_retry_interval: 15,
             token: "TOKEN".into(),
             config_path: None,
+            grpc_ca: None,
         }
     }
 }

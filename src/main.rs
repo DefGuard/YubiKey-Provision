@@ -3,10 +3,14 @@ use std::time::Duration;
 use config::get_config;
 use error::WorkerError;
 use gpg::provision_key;
-use log::debug;
+use log::{debug, info};
 use proto::{worker_service_client::WorkerServiceClient, JobStatus, Worker};
 use tokio::time::interval;
-use tonic::{metadata::MetadataValue, transport::Channel, Code, Request};
+use tonic::{
+    metadata::MetadataValue,
+    transport::{Certificate, ClientTlsConfig, Endpoint},
+    Code, Request,
+};
 
 mod config;
 mod error;
@@ -32,21 +36,27 @@ async fn main() -> Result<(), WorkerError> {
     //init logging
     logging::init(&config.log_level, &None).expect("Failed to init logging, check logging config");
     // Make grpc client
-    let url = config.url.clone();
+    let mut url = config.url.clone();
+    if config.grpc_ca.is_some() {
+        url = url.replace("http://", "https://");
+    }
     let token: MetadataValue<_> = config
         .token
         .clone()
         .parse()
         .expect("Failed to parse worker token");
-    let channel = Channel::from_shared(url.clone())
-        .expect("Failed to create grpc channel")
-        .connect()
-        .await
-        .expect("Failed to connect grpc channel, check config.");
-    debug!(
-        "Tonic channel connected.\nGRPC Connected on URL: {}",
-        &config.url
-    );
+    let endpoint = Endpoint::from_shared(url.clone())?
+        .http2_keep_alive_interval(Duration::from_secs(10))
+        .tcp_keepalive(Some(Duration::from_secs(10)));
+    let endpoint = if let Some(ca) = &config.grpc_ca {
+        let ca = std::fs::read_to_string(ca)?;
+        let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
+        info!("TLS configured");
+        endpoint.tls_config(tls)?
+    } else {
+        endpoint
+    };
+    let channel = endpoint.connect_lazy();
     let mut client = WorkerServiceClient::with_interceptor(channel, move |mut req: Request<()>| {
         req.metadata_mut().insert("authorization", token.clone());
         Ok(req)
@@ -66,7 +76,7 @@ async fn main() -> Result<(), WorkerError> {
         }
     };
     // worker loop
-    let period = Duration::from_secs(config.job_interval.clone());
+    let period = Duration::from_secs(2);
     let mut client_interval = interval(period);
     loop {
         client_interval.tick().await;
