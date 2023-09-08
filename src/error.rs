@@ -12,7 +12,7 @@ pub enum WorkerError {
     #[error("Tonic request failed with status code of {0}")]
     TonicStatusError(String),
     #[error("GPG command failed")]
-    GPG,
+    Gpg,
     #[error("Failed to clean up gpg session")]
     GPGSessionEnd,
     #[error("ykman command failed")]

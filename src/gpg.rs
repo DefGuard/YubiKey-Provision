@@ -54,7 +54,7 @@ save"#,
 pub fn init_gpg() -> Result<(String, Child), WorkerError> {
     let working_dir_path_buf = env::current_dir()?;
 
-    let working_dir_str = working_dir_path_buf.to_str().ok_or(WorkerError::GPG)?;
+    let working_dir_str = working_dir_path_buf.to_str().ok_or(WorkerError::Gpg)?;
 
     let temp_path = format!("{}/temp", &working_dir_str);
 
@@ -64,7 +64,7 @@ pub fn init_gpg() -> Result<(String, Child), WorkerError> {
             .status()?;
 
         if !res.success() {
-            return Err(WorkerError::GPG);
+            return Err(WorkerError::Gpg);
         }
     }
 
@@ -80,7 +80,7 @@ pub fn init_gpg() -> Result<(String, Child), WorkerError> {
         .args(["--homedir", &temp_path.clone(), "--daemon"])
         .spawn()?;
 
-    return Ok((temp_path, gpg_agent));
+    Ok((temp_path, gpg_agent))
 }
 
 pub fn gen_key(gpg_home: &str, full_name: &str, email: &str) -> Result<(), WorkerError> {
@@ -95,7 +95,7 @@ pub fn gen_key(gpg_home: &str, full_name: &str, email: &str) -> Result<(), Worke
         ])
         .stdin(Stdio::piped())
         .spawn()?;
-    let mut stdin = child.stdin.take().ok_or(WorkerError::GPG)?;
+    let mut stdin = child.stdin.take().ok_or(WorkerError::Gpg)?;
     let info_args = card_info_args(full_name, email);
     std::thread::spawn(move || {
         let _ = stdin.write_all(info_args.as_bytes());
@@ -170,7 +170,6 @@ pub fn check_card() -> Result<(), WorkerError> {
         String::from_utf8(out.stdout).expect("Failed to read output from ykman openpgp list");
     let lines: Vec<String> = out_str
         .split("\r\n")
-        .into_iter()
         .filter(|line| !line.is_empty())
         .map(|line| line.to_string())
         .collect();
@@ -194,15 +193,15 @@ pub fn get_fingerprint() -> Result<String, WorkerError> {
     let lines: Vec<String> = out_str
         .split("\r\n")
         .filter(|line| !line.is_empty())
-        .map(|line| line.trim().replace(" ", "").to_string())
+        .map(|line| line.trim().replace(' ', "").to_string())
         .collect();
     if let Some(index) = lines.iter().position(|l| l.starts_with("pub")) {
         return match lines.get(index + 1) {
             Some(fingerprint) => Ok(fingerprint.to_string()),
-            None => Err(WorkerError::GPG),
+            None => Err(WorkerError::Gpg),
         };
     } else {
-        return Err(WorkerError::GPG);
+        Err(WorkerError::Gpg)
     }
 }
 

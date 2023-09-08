@@ -70,7 +70,7 @@ async fn main() -> Result<(), WorkerError> {
         Ok(_) => {}
         Err(e) => {
             if e.code() != Code::AlreadyExists {
-                panic!("Failed to register worker, {}", e.to_string());
+                panic!("Failed to register worker, {}", e);
             }
             debug!("Worker already registered, proceeding.");
         }
@@ -91,7 +91,7 @@ async fn main() -> Result<(), WorkerError> {
                 Ok(key_info) => {
                     let job_status: JobStatus = JobStatus {
                         id: config.worker_id.clone(),
-                        job_id: job_data.job_id.clone(),
+                        job_id: job_data.job_id,
                         success: true,
                         public_key: key_info.pgp,
                         ssh_key: key_info.ssh,
@@ -105,7 +105,7 @@ async fn main() -> Result<(), WorkerError> {
                     debug!("Provisioning FAILED: {}", err.to_string());
                     let job_status: JobStatus = JobStatus {
                         id: config.worker_id.clone(),
-                        job_id: job_data.job_id.clone(),
+                        job_id: job_data.job_id,
                         success: false,
                         public_key: "".into(),
                         ssh_key: "".into(),

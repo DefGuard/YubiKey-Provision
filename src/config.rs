@@ -2,7 +2,7 @@ use std::{fs, path::PathBuf};
 
 use clap::Parser;
 use serde::Deserialize;
-use toml;
+
 
 use crate::error::WorkerError;
 
