@@ -23,12 +23,12 @@ pub fn card_info_args(name: &str, email: &str) -> String {
         r#"
     %no-protection
     Key-Type: RSA
-    Key-Length: 2048
+    Key-Length: 4096
     Name-Real: {}
     Name-Email: {}
     Expire-Date: 0
     Subkey-Type: RSA
-    Subkey-Length: 2048
+    Subkey-Length: 4096
     Subkey-Usage: sign, encrypt, auth
     %commit
     "#,
