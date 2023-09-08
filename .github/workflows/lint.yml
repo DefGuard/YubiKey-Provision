@@ -1,0 +1,38 @@
+name: Lint rust
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  lint:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: lint-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install protoc
+        run: apt-get update && apt-get -y install protobuf-compiler
+
+      - name: Check format
+        run: |
+          rustup component add rustfmt clippy
+          cargo fmt --all -- --check
+          cargo clippy --all-targets --all-features
