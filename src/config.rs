@@ -3,7 +3,6 @@ use std::{fs, path::PathBuf};
 use clap::Parser;
 use serde::Deserialize;
 
-
 use crate::error::WorkerError;
 
 #[derive(Debug, Parser, Clone, Deserialize)]

@@ -11,6 +11,9 @@ use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint},
     Code, Request,
 };
+use which::which;
+
+use crate::gpg::get_gpg_command;
 
 mod config;
 mod error;
@@ -35,6 +38,11 @@ async fn main() -> Result<(), WorkerError> {
     let config = get_config().expect("Failed to create config");
     //init logging
     logging::init(&config.log_level, &None).expect("Failed to init logging, check logging config");
+    // Check required binaries
+    let gpg_command = get_gpg_command();
+    if which("ykman").is_err() {
+        panic!("'ykman' not found!");
+    }
     // Make grpc client
     let mut url = config.url.clone();
     if config.grpc_ca.is_some() {
@@ -86,8 +94,8 @@ async fn main() -> Result<(), WorkerError> {
         });
         if let Ok(job_response) = client.get_job(worker_request).await {
             let job_data = job_response.into_inner();
-            debug!("Job received : {:?}", &job_data);
-            match provision_key(&config, &job_data).await {
+            debug!("Job received: {job_data:?}");
+            match provision_key(&config, &job_data, gpg_command).await {
                 Ok(key_info) => {
                     let job_status: JobStatus = JobStatus {
                         id: config.worker_id.clone(),

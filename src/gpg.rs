@@ -1,5 +1,3 @@
-use std::fs::remove_dir_all;
-
 use std::time::Duration;
 use std::{
     env, fs,
@@ -11,6 +9,7 @@ use std::{
 use log::{debug, info};
 use serde::Serialize;
 use tokio::time::interval;
+use which::which;
 
 use crate::config::Config;
 use crate::error::WorkerError;
@@ -18,20 +17,31 @@ use crate::proto;
 
 pub const ADMIN_PIN: &str = "12345678";
 
+pub fn get_gpg_command() -> &'static str {
+    if which("gpg").is_err() {
+        if which("gpg2").is_err() {
+            panic!("gpg not found");
+        } else {
+            return "gpg2";
+        }
+    }
+    "gpg"
+}
+
 pub fn card_info_args(name: &str, email: &str) -> String {
     format!(
-        r#"
+        r"
     %no-protection
     Key-Type: RSA
     Key-Length: 4096
-    Name-Real: {}
-    Name-Email: {}
+    Name-Real: {0}
+    Name-Email: {1}
     Expire-Date: 0
     Subkey-Type: RSA
     Subkey-Length: 4096
     Subkey-Usage: sign, encrypt, auth
     %commit
-    "#,
+    ",
         name, email
     )
 }
@@ -52,11 +62,9 @@ save"#,
 }
 
 pub fn init_gpg() -> Result<(String, Child), WorkerError> {
-    let working_dir_path_buf = env::current_dir()?;
-
-    let working_dir_str = working_dir_path_buf.to_str().ok_or(WorkerError::Gpg)?;
-
-    let temp_path = format!("{}/temp", &working_dir_str);
+    let mut temp_path = env::temp_dir();
+    temp_path.push("yubikey-provision");
+    let temp_path_str = temp_path.to_str().ok_or(WorkerError::Gpg)?;
 
     {
         let res = Command::new("gpgconf")
@@ -77,14 +85,19 @@ pub fn init_gpg() -> Result<(String, Child), WorkerError> {
     // init local temp gpg home
 
     let gpg_agent = Command::new("gpg-agent")
-        .args(["--homedir", &temp_path.clone(), "--daemon"])
+        .args(["--homedir", temp_path_str, "--daemon"])
         .spawn()?;
 
-    Ok((temp_path, gpg_agent))
+    Ok((temp_path_str.to_string(), gpg_agent))
 }
 
-pub fn gen_key(gpg_home: &str, full_name: &str, email: &str) -> Result<(), WorkerError> {
-    let mut child = Command::new("gpg")
+pub fn gen_key(
+    gpg_command: &str,
+    gpg_home: &str,
+    full_name: &str,
+    email: &str,
+) -> Result<(), WorkerError> {
+    let mut child = Command::new(gpg_command)
         .args([
             "--homedir",
             gpg_home,
@@ -104,8 +117,8 @@ pub fn gen_key(gpg_home: &str, full_name: &str, email: &str) -> Result<(), Worke
     Ok(())
 }
 
-pub fn key_to_card(gpg_home: &str, email: &str) -> Result<(), WorkerError> {
-    let mut child = Command::new("gpg")
+pub fn key_to_card(gpg_command: &str, gpg_home: &str, email: &str) -> Result<(), WorkerError> {
+    let mut child = Command::new(gpg_command)
         .args([
             "--homedir",
             gpg_home,
@@ -131,8 +144,12 @@ pub fn key_to_card(gpg_home: &str, email: &str) -> Result<(), WorkerError> {
     Ok(())
 }
 
-pub fn export_public(gpg_home: &str, email: &str) -> Result<String, WorkerError> {
-    let out = Command::new("gpg")
+pub fn export_public(
+    gpg_command: &str,
+    gpg_home: &str,
+    email: &str,
+) -> Result<String, WorkerError> {
+    let out = Command::new(gpg_command)
         .args(["--homedir", gpg_home, "--armor", "--export", email])
         .stdout(Stdio::piped())
         .output()?;
@@ -140,8 +157,8 @@ pub fn export_public(gpg_home: &str, email: &str) -> Result<String, WorkerError>
     Ok(out_str)
 }
 
-pub fn export_ssh(gpg_home: &str, email: &str) -> Result<String, WorkerError> {
-    let out = Command::new("gpg")
+pub fn export_ssh(gpg_command: &str, gpg_home: &str, email: &str) -> Result<String, WorkerError> {
+    let out = Command::new(gpg_command)
         .args(["--homedir", gpg_home, "--export-ssh-key", email])
         .output()?;
     let out_str = String::from_utf8(out.stdout)?;
@@ -152,10 +169,11 @@ pub fn factory_reset_key() -> Result<(), WorkerError> {
     let status = Command::new("ykman")
         .args(["openpgp", "reset", "-f"])
         .status()?;
-    if !status.success() {
-        return Err(WorkerError::YubikeyManager);
+    if status.success() {
+        Ok(())
+    } else {
+        Err(WorkerError::YubikeyManager)
     }
-    Ok(())
 }
 
 pub fn check_card() -> Result<(), WorkerError> {
@@ -215,6 +233,7 @@ pub struct ProvisioningInfo {
 pub async fn provision_key(
     config: &Config,
     job: &proto::GetJobResponse,
+    gpg_command: &str,
 ) -> Result<ProvisioningInfo, WorkerError> {
     let full_name = format!("{} {}", job.first_name, job.last_name);
     info!("Provisioning start for: {}", &job.email);
@@ -237,25 +256,19 @@ pub async fn provision_key(
     debug!("Temporary GPG session crated");
     factory_reset_key()?;
     debug!("OpenPGP Key app restored to factory.");
-    gen_key(&gpg_home, &full_name, &job.email)?;
+    gen_key(gpg_command, &gpg_home, &full_name, &job.email)?;
     debug!("OpenPGP key for {} created", &job.email);
     let fingerprint = get_fingerprint()?;
-    let pgp = export_public(&gpg_home, &job.email)?;
-    let ssh = export_ssh(&gpg_home, &job.email)?;
-    key_to_card(&gpg_home, &job.email)?;
+    let pgp = export_public(gpg_command, &gpg_home, &job.email)?;
+    let ssh = export_ssh(gpg_command, &gpg_home, &job.email)?;
+    key_to_card(gpg_command, &gpg_home, &job.email)?;
     debug!("Subkeys saved in yubikey");
     // cleanup after provisioning
-    match gpg_process.kill() {
-        Ok(_) => {}
-        Err(_) => {
-            return Err(WorkerError::GPGSessionEnd);
-        }
+    if gpg_process.kill().is_err() {
+        return Err(WorkerError::GPGSessionEnd);
     }
-    match remove_dir_all(&gpg_home) {
-        Ok(_) => {}
-        Err(_) => {
-            return Err(WorkerError::GPGSessionEnd);
-        }
+    if fs::remove_dir_all(&gpg_home).is_err() {
+        return Err(WorkerError::GPGSessionEnd);
     }
     debug!("Temporary GPG session cleared and closed");
     info!("Yubikey openpgp provisioning completed.");

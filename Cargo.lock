@@ -1696,4 +1696,5 @@ dependencies = [
  "toml",
  "tonic",
  "tonic-build",
+ "which",
 ]
