@@ -18,6 +18,8 @@ jobs:
           submodules: recursive
       - name: Extract branch name
         uses: nelonoel/branch-name@v1
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v4
