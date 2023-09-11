@@ -83,6 +83,7 @@ async fn main() -> Result<(), WorkerError> {
             debug!("Worker already registered, proceeding.");
         }
     };
+    info!("Worker is listening for jobs from {}", &config.url);
     // worker loop
     let period = Duration::from_secs(2);
     let mut client_interval = interval(period);
@@ -123,6 +124,7 @@ async fn main() -> Result<(), WorkerError> {
                     let request = tonic::Request::new(job_status);
                     let _ = client.set_job_done(request).await;
                     debug!("Job result sent");
+                    info!("Job failed");
                 }
             }
         }

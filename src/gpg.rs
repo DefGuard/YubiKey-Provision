@@ -239,17 +239,25 @@ pub async fn provision_key(
     info!("Provisioning start for: {}", &job.email);
     let check_duration = Duration::from_secs(config.smartcard_retry_interval);
     let mut check_interval = interval(check_duration);
+    let mut fail_counter = 0;
     loop {
+        check_interval.tick().await;
         match check_card() {
             Ok(_) => break,
             Err(e) => match e {
                 WorkerError::NoKeysFound => {
-                    info!("No keys found, waiting...");
+                    info!(
+                        "No keys found, retry in {} seconds",
+                        check_duration.as_secs()
+                    );
+                    if fail_counter >= config.smartcard_retries {
+                        return Err(WorkerError::NoKeysFound);
+                    }
+                    fail_counter += 1;
                 }
                 _ => return Err(e),
             },
         }
-        check_interval.tick().await;
     }
     debug!("Key found");
     let (gpg_home, mut gpg_process) = init_gpg()?;

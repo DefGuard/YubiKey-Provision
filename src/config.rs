@@ -20,7 +20,7 @@ pub struct Config {
     pub log_level: String,
 
     /// Url of your DefGuard instance
-    #[arg(long, env = "URL", default_value = "localhost:50055")]
+    #[arg(long, env = "URL", default_value = "http://127.0.0.1:50055")]
     pub url: String,
 
     /// Number of retries in case if there are no keys detected
@@ -51,7 +51,7 @@ impl Default for Config {
         Self {
             worker_id: "YubiBridge".into(),
             log_level: "INFO".into(),
-            url: "localhost:50055".into(),
+            url: "http://127.0.0.1:50055".into(),
             smartcard_retries: 1,
             smartcard_retry_interval: 15,
             token: "TOKEN".into(),
