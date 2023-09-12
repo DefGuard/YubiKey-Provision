@@ -102,9 +102,6 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
-      - name: Install protoc
-        run: sudo apt-get update && sudo apt-get -y install protobuf-compiler
-
       - name: Build release binary
         uses: actions-rs/cargo@v1
         with:
