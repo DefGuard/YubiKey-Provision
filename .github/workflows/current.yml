@@ -28,7 +28,7 @@ jobs:
             ghcr.io/defguard/yubikey-provision
           tags: |
             type=ref,event=branch
-            type=raw,value=current.${{ env.GITHUB_REF_NAME }}
+            type=raw,value=current
             type=sha
 
       - name: Set up QEMU

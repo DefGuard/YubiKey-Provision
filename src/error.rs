@@ -21,7 +21,7 @@ pub enum WorkerError {
     NoKeysFound,
     #[error("Multiple yubikeys found")]
     MultipleKeysPresent,
-    #[error("IO error occured")]
+    #[error("IO error occurred")]
     IO,
     #[error("UTF8 conversion failed")]
     UTF8Conversion,
