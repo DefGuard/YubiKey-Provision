@@ -112,9 +112,6 @@ jobs:
       - name: Rename binary
         run: mv target/${{ matrix.target }}/release/yubikey-provision ${{ matrix.asset_name }}-${{ github.ref_name }}
 
-      - name: Strip release binary
-        run: strip "${{ matrix.asset_name }}-${{ github.ref_name }}"
-
       - name: Tar
         uses: a7ul/tar-action@v1.1.0
         with:
