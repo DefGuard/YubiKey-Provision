@@ -8,19 +8,23 @@ use crate::error::WorkerError;
 #[derive(Debug, Parser, Clone, Deserialize)]
 #[clap(about = "Defguard YubiKey Provisioning service")]
 pub struct Config {
-    // CA Used for GRPC connection
-    #[arg(long, env = "GRPC_CA")]
+    // Path to CA Used for GRPC connection
+    #[arg(long = "ca-file", env = "GRPC_CA")]
     pub grpc_ca: Option<PathBuf>,
-    /// Worker id
-    #[arg(long, env = "WORKER_ID", default_value = "YubiBridge")]
+    /// ID, this will be also displayed in defguard UI
+    #[arg(long = "id", env = "ID", default_value = "YubikeyProvisioner")]
     pub worker_id: String,
 
     /// Logging level, needs to be compatible with log crate log::LevelFilter::from_str
     #[arg(long, env = "LOG_LEVEL", default_value = "info")]
     pub log_level: String,
 
-    /// Url of your DefGuard instance
-    #[arg(long, env = "URL", default_value = "http://127.0.0.1:50055")]
+    /// Url of your DefGuard GRPC server
+    #[arg(
+        long = "grpc",
+        env = "GRPC_URL",
+        default_value = "http://127.0.0.1:50055"
+    )]
     pub url: String,
 
     /// Number of retries in case if there are no keys detected
