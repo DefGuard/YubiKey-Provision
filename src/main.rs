@@ -3,7 +3,7 @@ use std::time::Duration;
 use config::get_config;
 use error::WorkerError;
 use gpg::provision_key;
-use log::{debug, info};
+use log::{debug, error, info};
 use proto::{worker_service_client::WorkerServiceClient, JobStatus, Worker};
 use tokio::time::interval;
 use tonic::{
@@ -124,7 +124,7 @@ async fn main() -> Result<(), WorkerError> {
                     let request = tonic::Request::new(job_status);
                     let _ = client.set_job_done(request).await;
                     debug!("Job result sent");
-                    info!("Job failed");
+                    error!("Job failed! Result sent");
                 }
             }
         }

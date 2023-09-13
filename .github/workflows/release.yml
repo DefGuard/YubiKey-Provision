@@ -39,7 +39,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -111,9 +111,6 @@ jobs:
 
       - name: Rename binary
         run: mv target/${{ matrix.target }}/release/yubikey-provision ${{ matrix.asset_name }}-${{ github.ref_name }}
-
-      - name: Strip release binary
-        run: strip "${{ matrix.asset_name }}-${{ github.ref_name }}"
 
       - name: Tar
         uses: a7ul/tar-action@v1.1.0

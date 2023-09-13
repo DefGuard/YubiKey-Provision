@@ -1,5 +1,5 @@
 [package]
-name = "yubikey-provider"
+name = "yubikey-provision"
 version = "0.1.0"
 edition = "2021"
 
@@ -23,3 +23,8 @@ which = "4"
 [build-dependencies]
 tonic-build = { version = "0.10" }
 prost-build = { version = "0.12" }
+
+[profile.release]
+strip = true
+opt-level = "s"
+lto = true
