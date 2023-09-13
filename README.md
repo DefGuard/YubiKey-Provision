@@ -1,5 +1,15 @@
-# YubiKey-Provision
+ <p align="center">
+    <img src="docs/header.png" alt="defguard">
+ </p>
+
 [Defguard](https://github.com/DefGuard/defguard) provisioning client for Yubikeys module.
+
+
+## Supported platforms
+
+- Linux
+- Windows
+- MacOS
 
 ## Prerequisites
 Machine using this service needs to have proper drivers/tools to detect and operate on smartcard's.
@@ -24,3 +34,15 @@ This tool can also be used from a docker image like so:
 docker run --privileged ghcr.io/defguard/yubikey-provision:main -t <TOKEN> --id <ID> --grpc <DEFGUARD_GRPC_URL>
 ```
 Note that image is using elevated privileges to access host's USB by default but you can also try to configure it with **--device**.
+
+## Documentation
+
+See the [documentation](https://defguard.gitbook.io) for more information.
+
+## Community and Support
+
+Find us on Matrix: [#defguard:teonite.com](https://matrix.to/#/#defguard:teonite.com)
+
+## Contribution
+
+Please review the [Contributing guide](https://defguard.gitbook.io/defguard/for-developers/contributing) for information on how to get started contributing to the project. You might also find our [environment setup guide](https://defguard.gitbook.io/defguard/for-developers/dev-env-setup) handy.
