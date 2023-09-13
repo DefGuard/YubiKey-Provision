@@ -3,9 +3,9 @@
 
 ## Prerequisites
 Machine using this service needs to have proper drivers/tools to detect and operate on smartcard's.
-While macOS and windows should work without installing additional software, on linux make sure your distribution has all nesesery tools to detect, read and write on smartcard's.
+While macOS and Windows should work without installing additional software, on Linux make sure your distribution has all the necessary tools to detect, read, and write on smartcard's.
 
-Also the following tools are **required**:
+Also, the following tools are **required**:
 - [ykman](https://developers.yubico.com/yubikey-manager/)
 - gpg version 2
 
@@ -19,7 +19,7 @@ The following information is **required** in order to launch client, these can b
 | Authentication token | Token to authorize client, this can be found in provisioners page in main Defguard UI. |       **TOKEN**      |  --token |
 
 ## Docker
-This tool can also be used from docker image like so:
+This tool can also be used from a docker image like so:
 ```bash
 docker run --privileged ghcr.io/defguard/yubikey-provision:main -t <TOKEN> --id <ID> --grpc <DEFGUARD_GRPC_URL>
 ```
