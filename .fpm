@@ -1,0 +1,6 @@
+-s dir
+-a native
+--name yubikey-provision
+--description "Defguard YubiKey Provision client"
+--url "https://defguard.net/"
+--maintainer "Teonite"

@@ -1680,8 +1680,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "yubikey-provider"
-version = "0.1.0"
+name = "yubikey-provision"
+version = "0.1.7"
 dependencies = [
  "chrono",
  "clap",

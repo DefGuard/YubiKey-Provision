@@ -1,6 +1,6 @@
 [package]
-name = "yubikey-provider"
-version = "0.1.0"
+name = "yubikey-provision"
+version = "0.1.7"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -23,3 +23,8 @@ which = "4"
 [build-dependencies]
 tonic-build = { version = "0.10" }
 prost-build = { version = "0.12" }
+
+[profile.release]
+strip = true
+opt-level = "s"
+lto = true
