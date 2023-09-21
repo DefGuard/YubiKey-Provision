@@ -35,6 +35,14 @@ docker run --privileged ghcr.io/defguard/yubikey-provision:main -t <TOKEN> --id 
 ```
 Note that image is using elevated privileges to access host's USB by default but you can also try to configure it with **--device**.
 
+## macOS
+
+```
+brew install rust ykman gpg2 protobuf
+cargo build
+./target/debug/yubikey-provision --id <id> --token <token_from_defguard> --grpc "defguard-grpc.host.name"
+```
+
 ## Documentation
 
 See the [documentation](https://defguard.gitbook.io) for more information.
