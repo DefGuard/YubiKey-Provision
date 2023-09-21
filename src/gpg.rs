@@ -1,3 +1,4 @@
+#[cfg(target_family = "unix")]
 use std::path::PathBuf;
 use std::time::Duration;
 use std::{
@@ -62,7 +63,7 @@ save"#,
     )
 }
 
-#[cfg(unix)]
+#[cfg(target_family = "unix")]
 pub fn set_permissions(dir_path: &PathBuf) -> Result<(), WorkerError> {
     use std::os::unix::prelude::PermissionsExt;
 
@@ -74,9 +75,10 @@ pub fn set_permissions(dir_path: &PathBuf) -> Result<(), WorkerError> {
 pub fn init_gpg() -> Result<(String, Child), WorkerError> {
     let mut temp_path = env::temp_dir();
     temp_path.push("yubikey-provision");
-    if cfg!(unix) {
-        set_permissions(&temp_path)?;
-    }
+
+    #[cfg(target_family = "unix")]
+    set_permissions(&temp_path)?;
+
     let temp_path_str = temp_path.to_str().ok_or(WorkerError::Gpg)?;
 
     {
