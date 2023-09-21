@@ -35,6 +35,10 @@ pub struct Config {
     #[arg(long, env = "YUBIKEY_RETRY_INTERVAL", default_value = "15")]
     pub smartcard_retry_interval: u64,
 
+    /// gpg debug level, this is set to advanced when log_level is set to debug
+    #[arg(long, env = "GPG_DEBUG_LEVEL", default_value = "none")]
+    pub gpg_debug_level: String,
+
     /// Token from Defguard available on Provisioning page
     #[arg(
         long,
@@ -61,13 +65,14 @@ impl Default for Config {
             token: "TOKEN".into(),
             config_path: None,
             grpc_ca: None,
+            gpg_debug_level: "none".into(),
         }
     }
 }
 
 pub fn get_config() -> Result<Config, WorkerError> {
     // parse CLI arguments to get config file path
-    let cli_config = Config::parse();
+    let mut cli_config = Config::parse();
 
     // load config from file if one was specified
     if let Some(config_path) = cli_config.config_path {
@@ -75,7 +80,11 @@ pub fn get_config() -> Result<Config, WorkerError> {
             .map_err(|err| WorkerError::InvalidConfigFile(err.to_string()))?;
         let file_config: Config = toml::from_str(&config_toml)
             .map_err(|err| WorkerError::InvalidConfigFile(err.message().to_string()))?;
-        return Ok(file_config);
+        cli_config = file_config.clone();
+    }
+
+    if cli_config.log_level == "debug" && cli_config.gpg_debug_level == "none" {
+        cli_config.gpg_debug_level = "advanced".into();
     }
 
     Ok(cli_config)
