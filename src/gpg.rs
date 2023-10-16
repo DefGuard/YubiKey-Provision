@@ -124,6 +124,8 @@ pub fn gen_key(
     email: &str,
 ) -> Result<(), WorkerError> {
     let command_args = [
+        "--debug-level",
+        gpg_debug_level,
         "--homedir",
         gpg_home,
         "--batch",
@@ -137,16 +139,7 @@ pub fn gen_key(
         command_args.join(" ")
     );
     let mut child = Command::new(gpg_command)
-        .args([
-            "--debug-level",
-            gpg_debug_level,
-            "--homedir",
-            gpg_home,
-            "--batch",
-            "--command-fd",
-            "0",
-            "--full-gen-key",
-        ])
+        .args(command_args)
         .stdin(Stdio::piped())
         .spawn()?;
     let mut stdin = child.stdin.take().ok_or(WorkerError::Gpg)?;
@@ -164,22 +157,28 @@ pub fn key_to_card(
     gpg_home: &str,
     email: &str,
 ) -> Result<(), WorkerError> {
+    let command_args = [
+        "--debug-level",
+        gpg_debug_level,
+        "--homedir",
+        gpg_home,
+        "--command-fd=0",
+        "--status-fd=1",
+        "--passphrase-fd=0",
+        "--batch",
+        "--yes",
+        "--pinentry-mode=loopback",
+        "--edit-key",
+        "--no-tty",
+        email,
+    ];
+    debug!(
+        "Transferring keys via {} with args: {}",
+        gpg_command,
+        &command_args.join(" ")
+    );
     let mut child = Command::new(gpg_command)
-        .args([
-            "--debug-level",
-            gpg_debug_level,
-            "--homedir",
-            gpg_home,
-            "--command-fd=0",
-            "--status-fd=1",
-            "--passphrase-fd=0",
-            "--batch",
-            "--yes",
-            "--pinentry-mode=loopback",
-            "--edit-key",
-            "--no-tty",
-            email,
-        ])
+        .args(command_args)
         .env("LANG", "en")
         .stdin(Stdio::piped())
         .spawn()?;
