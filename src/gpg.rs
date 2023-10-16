@@ -118,6 +118,7 @@ pub fn init_gpg() -> Result<(String, Child), WorkerError> {
 
 pub fn gen_key(
     gpg_command: &str,
+    gpg_debug_level: &str,
     gpg_home: &str,
     full_name: &str,
     email: &str,
@@ -136,7 +137,16 @@ pub fn gen_key(
         command_args.join(" ")
     );
     let mut child = Command::new(gpg_command)
-        .args(command_args)
+        .args([
+            "--debug-level",
+            gpg_debug_level,
+            "--homedir",
+            gpg_home,
+            "--batch",
+            "--command-fd",
+            "0",
+            "--full-gen-key",
+        ])
         .stdin(Stdio::piped())
         .spawn()?;
     let mut stdin = child.stdin.take().ok_or(WorkerError::Gpg)?;
@@ -148,27 +158,28 @@ pub fn gen_key(
     Ok(())
 }
 
-pub fn key_to_card(gpg_command: &str, gpg_home: &str, email: &str) -> Result<(), WorkerError> {
-    let command_args = [
-        "--homedir",
-        gpg_home,
-        "--command-fd=0",
-        "--status-fd=1",
-        "--passphrase-fd=0",
-        "--batch",
-        "--yes",
-        "--pinentry-mode=loopback",
-        "--edit-key",
-        "--no-tty",
-        email,
-    ];
-    debug!(
-        "Transferring keys to card via {} with args: {}",
-        gpg_command,
-        command_args.join(" ")
-    );
+pub fn key_to_card(
+    gpg_command: &str,
+    gpg_debug_level: &str,
+    gpg_home: &str,
+    email: &str,
+) -> Result<(), WorkerError> {
     let mut child = Command::new(gpg_command)
-        .args(command_args)
+        .args([
+            "--debug-level",
+            gpg_debug_level,
+            "--homedir",
+            gpg_home,
+            "--command-fd=0",
+            "--status-fd=1",
+            "--passphrase-fd=0",
+            "--batch",
+            "--yes",
+            "--pinentry-mode=loopback",
+            "--edit-key",
+            "--no-tty",
+            email,
+        ])
         .env("LANG", "en")
         .stdin(Stdio::piped())
         .spawn()?;
@@ -302,14 +313,19 @@ pub async fn provision_key(
     debug!("Resetting card to factory");
     factory_reset_key()?;
     debug!("OpenPGP Key app restored to factory.");
-    debug!("Generating gpg key...");
-    gen_key(gpg_command, &gpg_home, &full_name, &job.email)?;
+    gen_key(
+        gpg_command,
+        &config.gpg_debug_level,
+        &gpg_home,
+        &full_name,
+        &job.email,
+    )?;
     debug!("OpenPGP key for {} created", &job.email);
     let fingerprint = get_fingerprint()?;
     let pgp = export_public(gpg_command, &gpg_home, &job.email)?;
     let ssh = export_ssh(gpg_command, &gpg_home, &job.email)?;
-    key_to_card(gpg_command, &gpg_home, &job.email)?;
-    debug!("Subkeys saved in card");
+    key_to_card(gpg_command, &config.gpg_debug_level, &gpg_home, &job.email)?;
+    debug!("Subkeys saved in yubikey");
     // cleanup after provisioning
     debug!("Clearing gpg process and home");
     if gpg_process.kill().is_err() {
