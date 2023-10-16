@@ -65,14 +65,17 @@ save"#,
 
 #[cfg(target_family = "unix")]
 pub fn set_permissions(dir_path: &PathBuf) -> Result<(), WorkerError> {
+    debug!("Setting permissions for gpg temp home");
     use std::os::unix::prelude::PermissionsExt;
 
     let permissions = fs::Permissions::from_mode(0o700);
     fs::set_permissions(dir_path, permissions)?;
+    debug!("Permissions set");
     Ok(())
 }
 
 pub fn init_gpg() -> Result<(String, Child), WorkerError> {
+    debug!("Initiating new gpg session.");
     let mut temp_path = env::temp_dir();
     temp_path.push("yubikey-provision");
 
@@ -87,21 +90,28 @@ pub fn init_gpg() -> Result<(String, Child), WorkerError> {
             .status()?;
 
         if !res.success() {
+            debug!("Failed to Kill current gpg agent via gpgconf --kill gpg-agent");
             return Err(WorkerError::Gpg);
         }
+        debug!("User gpg agent session killed");
     }
+
+    debug!("gpg temporary home: {}", &temp_path_str);
 
     // init temp
     if Path::new(&temp_path).is_dir() {
         fs::remove_dir_all(&temp_path)?;
     }
     fs::create_dir_all(&temp_path)?;
+    debug!("gpg home created");
 
     // init local temp gpg home
 
     let gpg_agent = Command::new("gpg-agent")
         .args(["--homedir", temp_path_str, "--daemon"])
         .spawn()?;
+
+    debug!("gpg agent alive");
 
     Ok((temp_path_str.to_string(), gpg_agent))
 }
@@ -113,6 +123,19 @@ pub fn gen_key(
     full_name: &str,
     email: &str,
 ) -> Result<(), WorkerError> {
+    let command_args = [
+        "--homedir",
+        gpg_home,
+        "--batch",
+        "--command-fd",
+        "0",
+        "--full-gen-key",
+    ];
+    debug!(
+        "Generating key via {} with args: {}",
+        gpg_command,
+        command_args.join(" ")
+    );
     let mut child = Command::new(gpg_command)
         .args([
             "--debug-level",
@@ -261,7 +284,7 @@ pub async fn provision_key(
     gpg_command: &str,
 ) -> Result<ProvisioningInfo, WorkerError> {
     let full_name = format!("{} {}", job.first_name, job.last_name);
-    info!("Provisioning start for: {}", &job.email);
+    debug!("Provisioning start for: {}", &job.email);
     let check_duration = Duration::from_secs(config.smartcard_retry_interval);
     let mut check_interval = interval(check_duration);
     let mut fail_counter = 0;
@@ -287,6 +310,7 @@ pub async fn provision_key(
     debug!("Key found");
     let (gpg_home, mut gpg_process) = init_gpg()?;
     debug!("Temporary GPG session crated");
+    debug!("Resetting card to factory");
     factory_reset_key()?;
     debug!("OpenPGP Key app restored to factory.");
     gen_key(
@@ -303,13 +327,15 @@ pub async fn provision_key(
     key_to_card(gpg_command, &config.gpg_debug_level, &gpg_home, &job.email)?;
     debug!("Subkeys saved in yubikey");
     // cleanup after provisioning
+    debug!("Clearing gpg process and home");
     if gpg_process.kill().is_err() {
         return Err(WorkerError::GPGSessionEnd);
     }
+    debug!("gpg session killed");
     if fs::remove_dir_all(&gpg_home).is_err() {
         return Err(WorkerError::GPGSessionEnd);
     }
-    debug!("Temporary GPG session cleared and closed");
+    debug!("Temp home cleared");
     info!("Yubikey openpgp provisioning completed.");
     Ok(ProvisioningInfo {
         pgp,

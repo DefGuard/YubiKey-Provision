@@ -38,16 +38,20 @@ async fn main() -> Result<(), WorkerError> {
     let config = get_config().expect("Failed to create config");
     //init logging
     logging::init(&config.log_level, &None).expect("Failed to init logging, check logging config");
+    debug!("config loaded");
     // Check required binaries
     let gpg_command = get_gpg_command();
+    debug!("gpg command: {}", &gpg_command);
     if which("ykman").is_err() {
         panic!("'ykman' not found!");
     }
+    debug!("ykman present");
     // Make grpc client
     let mut url = config.url.clone();
     if config.grpc_ca.is_some() {
         url = url.replace("http://", "https://");
     }
+    debug!("URL: {}", &url);
     let token: MetadataValue<_> = config
         .token
         .clone()
@@ -75,7 +79,9 @@ async fn main() -> Result<(), WorkerError> {
     });
     //register worker
     match client.register_worker(worker_request).await {
-        Ok(_) => {}
+        Ok(_) => {
+            debug!("Worker registered !");
+        }
         Err(e) => {
             if e.code() != Code::AlreadyExists {
                 panic!("Failed to register worker, {}", e);
