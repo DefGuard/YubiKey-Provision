@@ -38,6 +38,8 @@ Note that image is using elevated privileges to access host's USB by default but
 ## macOS
 
 ```
+git submodule init
+git submodule update
 brew install rust ykman gpg2 protobuf
 cargo build
 ./target/debug/yubikey-provision --id <id> --token <token_from_defguard> --grpc "defguard-grpc.host.name"
