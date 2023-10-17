@@ -16,4 +16,4 @@ FROM runner
 RUN service pcscd start
 WORKDIR /app
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/yubikey-provision /usr/local/bin
-ENTRYPOINT ["/usr/local/bin/yubikey-provider"]
+ENTRYPOINT ["/usr/local/bin/yubikey-provision"]
