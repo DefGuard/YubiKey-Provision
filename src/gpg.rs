@@ -1,4 +1,3 @@
-use std::ops::Index;
 #[cfg(target_family = "unix")]
 use std::path::PathBuf;
 use std::time::Duration;
@@ -260,6 +259,7 @@ pub fn check_card() -> Result<String, WorkerError> {
     Err(WorkerError::SerialNotFound)
 }
 
+#[allow(dead_code)]
 pub fn get_fingerprint() -> Result<String, WorkerError> {
     let out = Command::new("gpg")
         .args(["--list-keys"])
@@ -299,7 +299,7 @@ pub async fn provision_key(
     let check_duration = Duration::from_secs(config.smartcard_retry_interval);
     let mut check_interval = interval(check_duration);
     let mut fail_counter = 0;
-    let mut serial = String::new();
+    let serial: String;
     loop {
         check_interval.tick().await;
         match check_card() {
