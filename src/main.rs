@@ -110,7 +110,7 @@ async fn main() -> Result<(), WorkerError> {
                         success: true,
                         public_key: key_info.pgp,
                         ssh_key: key_info.ssh,
-                        fingerprint: key_info.fingerprint,
+                        yubikey_serial: key_info.serial,
                         error: "".into(),
                     };
                     let request = tonic::Request::new(job_status);
@@ -124,7 +124,7 @@ async fn main() -> Result<(), WorkerError> {
                         success: false,
                         public_key: "".into(),
                         ssh_key: "".into(),
-                        fingerprint: "".into(),
+                        yubikey_serial: "".into(),
                         error: err.to_string(),
                     };
                     let request = tonic::Request::new(job_status);

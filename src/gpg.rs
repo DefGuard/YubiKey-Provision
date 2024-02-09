@@ -1,3 +1,4 @@
+use std::ops::Index;
 #[cfg(target_family = "unix")]
 use std::path::PathBuf;
 use std::time::Duration;
@@ -223,7 +224,8 @@ pub fn factory_reset_key() -> Result<(), WorkerError> {
     }
 }
 
-pub fn check_card() -> Result<(), WorkerError> {
+// returns serial number of yubikey if detected
+pub fn check_card() -> Result<String, WorkerError> {
     let out = Command::new("ykman")
         .args(["list"])
         .output()
@@ -245,7 +247,17 @@ pub fn check_card() -> Result<(), WorkerError> {
     if keys_found != 1 {
         return Err(WorkerError::MultipleKeysPresent);
     }
-    Ok(())
+    let out_split: Vec<&str> = out_str.split_whitespace().collect();
+    for (i, &item) in out_split.iter().enumerate() {
+        if item == "Serial:" {
+            if let Some(serial) = out_split.get(i + 1) {
+                return Ok(serial.to_string());
+            } else {
+                return Err(WorkerError::SerialNotFound);
+            }
+        }
+    }
+    Err(WorkerError::SerialNotFound)
 }
 
 pub fn get_fingerprint() -> Result<String, WorkerError> {
@@ -274,7 +286,7 @@ pub fn get_fingerprint() -> Result<String, WorkerError> {
 pub struct ProvisioningInfo {
     pub pgp: String,
     pub ssh: String,
-    pub fingerprint: String,
+    pub serial: String,
 }
 
 pub async fn provision_key(
@@ -287,10 +299,14 @@ pub async fn provision_key(
     let check_duration = Duration::from_secs(config.smartcard_retry_interval);
     let mut check_interval = interval(check_duration);
     let mut fail_counter = 0;
+    let mut serial = String::new();
     loop {
         check_interval.tick().await;
         match check_card() {
-            Ok(_) => break,
+            Ok(res) => {
+                serial = res;
+                break;
+            }
             Err(e) => match e {
                 WorkerError::NoKeysFound => {
                     info!(
@@ -306,7 +322,7 @@ pub async fn provision_key(
             },
         }
     }
-    debug!("Key found");
+    debug!("Key with serial ({serial}) found");
     let (gpg_home, mut gpg_process) = init_gpg()?;
     debug!("Temporary GPG session crated");
     debug!("Resetting card to factory");
@@ -320,7 +336,6 @@ pub async fn provision_key(
         &job.email,
     )?;
     debug!("OpenPGP key for {} created", &job.email);
-    let fingerprint = get_fingerprint()?;
     let pgp = export_public(gpg_command, &gpg_home, &job.email)?;
     let ssh = export_ssh(gpg_command, &gpg_home, &job.email)?;
     key_to_card(gpg_command, &config.gpg_debug_level, &gpg_home, &job.email)?;
@@ -336,9 +351,5 @@ pub async fn provision_key(
     }
     debug!("Temp home cleared");
     info!("Yubikey openpgp provisioning completed.");
-    Ok(ProvisioningInfo {
-        pgp,
-        ssh,
-        fingerprint,
-    })
+    Ok(ProvisioningInfo { pgp, ssh, serial })
 }
