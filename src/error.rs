@@ -25,6 +25,8 @@ pub enum WorkerError {
     IO,
     #[error("UTF8 conversion failed")]
     UTF8Conversion,
+    #[error("Cannot find key serial number")]
+    SerialNotFound,
 }
 
 impl From<tonic::transport::Error> for WorkerError {
