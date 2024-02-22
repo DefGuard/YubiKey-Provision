@@ -8,7 +8,7 @@ RUN cargo build --release --target x86_64-unknown-linux-musl
 
 FROM debian:bullseye-slim as runner
 RUN apt-get update
-RUN apt-get install -y pcscd yubikey-manager python3 python3-pip gnupg libc6 sysvinit-utils pcsc-tools libccid libnss3-tools openssl
+RUN apt-get install -y --fix-missing pcscd yubikey-manager python3 python3-pip gnupg libc6 sysvinit-utils pcsc-tools libccid libnss3-tools openssl
 RUN apt-get clean
 RUN pip install yubikey-manager
 
