@@ -75,7 +75,8 @@ pub fn set_permissions(dir_path: &PathBuf) -> Result<(), WorkerError> {
     Ok(())
 }
 
-pub fn init_gpg(_config: &Config) -> Result<(String, Child), WorkerError> {
+#[allow(unused_variables)]
+pub fn init_gpg(config: &Config) -> Result<(String, Child), WorkerError> {
     debug!("Initiating new gpg session.");
     let mut temp_path = env::temp_dir();
     temp_path.push("yubikey-provision");
