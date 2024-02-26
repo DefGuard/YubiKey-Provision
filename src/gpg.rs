@@ -66,7 +66,7 @@ save"#,
 #[cfg(target_family = "unix")]
 pub fn set_permissions(dir_path: &PathBuf) -> Result<(), WorkerError> {
     debug!("Setting permissions 700 for gpg temp folder.");
-    let dir_string = dir_path.into_os_string().into_string()?;
+    let dir_string = dir_path.to_string_lossy();
     debug!("GPG temp folder set to {0}", dir_string);
     use std::os::unix::prelude::PermissionsExt;
     let permissions = fs::Permissions::from_mode(0o700);
