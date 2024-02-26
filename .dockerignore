@@ -1,0 +1,6 @@
+*.local
+.github
+.vscode
+.git
+docs
+target
