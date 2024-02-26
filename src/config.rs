@@ -49,6 +49,9 @@ pub struct Config {
     )]
     pub token: String,
 
+    #[arg(env = "SKIP_GPG_PERMISSIONS", default_value = "false")]
+    pub skip_gpg_permissions: bool,
+
     /// Configuration file path
     #[arg(long = "config", short)]
     config_path: Option<std::path::PathBuf>,
@@ -65,6 +68,7 @@ impl Default for Config {
             token: "TOKEN".into(),
             config_path: None,
             grpc_ca: None,
+            skip_gpg_permissions: false,
             gpg_debug_level: "none".into(),
         }
     }

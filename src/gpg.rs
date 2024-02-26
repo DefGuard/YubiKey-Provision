@@ -65,22 +65,25 @@ save"#,
 
 #[cfg(target_family = "unix")]
 pub fn set_permissions(dir_path: &PathBuf) -> Result<(), WorkerError> {
-    debug!("Setting permissions for gpg temp home");
+    debug!("Setting permissions 700 for gpg temp folder.");
+    let dir_string = dir_path.into_os_string().into_string()?;
+    debug!("GPG temp folder set to {0}", dir_string);
     use std::os::unix::prelude::PermissionsExt;
-
     let permissions = fs::Permissions::from_mode(0o700);
     fs::set_permissions(dir_path, permissions)?;
     debug!("Permissions set");
     Ok(())
 }
 
-pub fn init_gpg() -> Result<(String, Child), WorkerError> {
+pub fn init_gpg(_config: &Config) -> Result<(String, Child), WorkerError> {
     debug!("Initiating new gpg session.");
     let mut temp_path = env::temp_dir();
     temp_path.push("yubikey-provision");
 
     #[cfg(target_family = "unix")]
-    set_permissions(&temp_path)?;
+    if !config.skip_gpg_permissions {
+        set_permissions(&temp_path)?;
+    }
 
     let temp_path_str = temp_path.to_str().ok_or(WorkerError::Gpg)?;
 
@@ -323,7 +326,7 @@ pub async fn provision_key(
         }
     }
     debug!("Key with serial ({serial}) found");
-    let (gpg_home, mut gpg_process) = init_gpg()?;
+    let (gpg_home, mut gpg_process) = init_gpg(config)?;
     debug!("Temporary GPG session crated");
     debug!("Resetting card to factory");
     factory_reset_key()?;

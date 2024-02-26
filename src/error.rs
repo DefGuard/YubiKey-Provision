@@ -21,8 +21,8 @@ pub enum WorkerError {
     NoKeysFound,
     #[error("Multiple yubikeys found")]
     MultipleKeysPresent,
-    #[error("IO error occurred")]
-    IO,
+    #[error("IO error occurred: {0}")]
+    IO(String),
     #[error("UTF8 conversion failed")]
     UTF8Conversion,
     #[error("Cannot find key serial number")]
@@ -42,8 +42,8 @@ impl From<Status> for WorkerError {
 }
 
 impl From<std::io::Error> for WorkerError {
-    fn from(_value: std::io::Error) -> Self {
-        WorkerError::IO
+    fn from(value: std::io::Error) -> Self {
+        WorkerError::IO(value.to_string())
     }
 }
 
