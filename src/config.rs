@@ -49,7 +49,11 @@ pub struct Config {
     )]
     pub token: String,
 
-    #[arg(env = "SKIP_GPG_PERMISSIONS", default_value = "false")]
+    #[arg(
+        long = "skip-permissions",
+        env = "SKIP_GPG_PERMISSIONS",
+        default_value_t = false
+    )]
     pub skip_gpg_permissions: bool,
 
     /// Configuration file path

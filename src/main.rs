@@ -38,7 +38,8 @@ async fn main() -> Result<(), WorkerError> {
     let config = get_config().expect("Failed to create config");
     //init logging
     logging::init(&config.log_level, &None).expect("Failed to init logging, check logging config");
-    debug!("config loaded");
+    debug!("Logging initialized.");
+    debug!("Current config: {:?}", &config);
     // Check required binaries
     let gpg_command = get_gpg_command();
     debug!("gpg command: {}", &gpg_command);

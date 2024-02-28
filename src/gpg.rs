@@ -1,3 +1,4 @@
+
 #[cfg(target_family = "unix")]
 use std::path::PathBuf;
 use std::time::Duration;
@@ -8,6 +9,8 @@ use std::{
     process::{Child, Command, Stdio},
 };
 
+#[cfg(target_family = "unix")]
+use log::error;
 use log::{debug, info};
 use serde::Serialize;
 use tokio::time::interval;
@@ -70,8 +73,19 @@ pub fn set_permissions(dir_path: &PathBuf) -> Result<(), WorkerError> {
     debug!("GPG temp folder set to {0}", dir_string);
     use std::os::unix::prelude::PermissionsExt;
     let permissions = fs::Permissions::from_mode(0o700);
-    fs::set_permissions(dir_path, permissions)?;
-    debug!("Permissions set");
+    match fs::set_permissions(dir_path, permissions) {
+        Ok(_) => {
+            debug!("Permissions set");
+        }
+        Err(e) => {
+            error!(
+                "Failed to set permissions for GPG TEMP Home! \
+            Location: {dir_string} \n \
+            Error: {0}\n Program will proceed with default permissions.",
+                e.to_string()
+            );
+        }
+    }
     Ok(())
 }
 
@@ -83,7 +97,10 @@ pub fn init_gpg(config: &Config) -> Result<(String, Child), WorkerError> {
 
     #[cfg(target_family = "unix")]
     if !config.skip_gpg_permissions {
-        set_permissions(&temp_path)?;
+        // ignore permissions error, just warn the user and proceed. Default permissions still allow for provisioning to work.
+        if let Err(e) = set_permissions(&temp_path) {
+            error!("Failed to set permissions! \n Error: {}", e.to_string());
+        }
     }
 
     let temp_path_str = temp_path.to_str().ok_or(WorkerError::Gpg)?;
