@@ -85,7 +85,7 @@ async fn main() -> Result<(), WorkerError> {
         }
         Err(e) => {
             if e.code() != Code::AlreadyExists {
-                panic!("Failed to register worker, {}", e);
+                panic!("Failed to register worker, {e}");
             }
             debug!("Worker already registered, proceeding.");
         }
@@ -112,7 +112,7 @@ async fn main() -> Result<(), WorkerError> {
                         public_key: key_info.pgp,
                         ssh_key: key_info.ssh,
                         yubikey_serial: key_info.serial,
-                        error: "".into(),
+                        error: String::new(),
                     };
                     let request = tonic::Request::new(job_status);
                     let _ = client.set_job_done(request).await;
@@ -123,9 +123,9 @@ async fn main() -> Result<(), WorkerError> {
                         id: config.worker_id.clone(),
                         job_id: job_data.job_id,
                         success: false,
-                        public_key: "".into(),
-                        ssh_key: "".into(),
-                        yubikey_serial: "".into(),
+                        public_key: String::new(),
+                        ssh_key: String::new(),
+                        yubikey_serial: String::new(),
                         error: err.to_string(),
                     };
                     let request = tonic::Request::new(job_status);

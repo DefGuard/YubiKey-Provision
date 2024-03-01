@@ -1,12 +1,12 @@
-#[cfg(target_family = "unix")]
-use std::path::PathBuf;
-use std::time::Duration;
 use std::{
     env, fs,
     io::Write,
     path::Path,
     process::{Child, Command, Stdio},
+    time::Duration,
 };
+#[cfg(target_family = "unix")]
+use std::{os::unix::fs::PermissionsExt, path::PathBuf};
 
 #[cfg(target_family = "unix")]
 use log::error;
@@ -38,21 +38,20 @@ pub fn card_info_args(name: &str, email: &str) -> String {
     %no-protection
     Key-Type: RSA
     Key-Length: 4096
-    Name-Real: {0}
-    Name-Email: {1}
+    Name-Real: {name}
+    Name-Email: {email}
     Expire-Date: 0
     Subkey-Type: RSA
     Subkey-Length: 4096
     Subkey-Usage: sign, encrypt, auth
     %commit
-    ",
-        name, email
+    "
     )
 }
 
 pub fn key_to_card_args() -> String {
     format!(
-        r#"{0}
+        r#"{ADMIN_PIN}
 key 1
 keytocard
 1
@@ -60,20 +59,18 @@ keytocard
 2
 keytocard
 3
-save"#,
-        ADMIN_PIN
+save"#
     )
 }
 
 #[cfg(target_family = "unix")]
-pub fn set_permissions(dir_path: &PathBuf) -> Result<(), WorkerError> {
+pub fn set_permissions(dir_path: &PathBuf) {
     debug!("Setting permissions 700 for gpg temp folder.");
     let dir_string = dir_path.to_string_lossy();
-    debug!("GPG temp folder set to {0}", dir_string);
-    use std::os::unix::prelude::PermissionsExt;
+    debug!("GPG temp folder set to {dir_string}");
     let permissions = fs::Permissions::from_mode(0o700);
     match fs::set_permissions(dir_path, permissions) {
-        Ok(_) => {
+        Ok(()) => {
             debug!("Permissions set");
         }
         Err(e) => {
@@ -85,7 +82,6 @@ pub fn set_permissions(dir_path: &PathBuf) -> Result<(), WorkerError> {
             );
         }
     }
-    Ok(())
 }
 
 #[allow(unused_variables)]
@@ -97,9 +93,7 @@ pub fn init_gpg(config: &Config) -> Result<(String, Child), WorkerError> {
     #[cfg(target_family = "unix")]
     if !config.skip_gpg_permissions {
         // ignore permissions error, just warn the user and proceed. Default permissions still allow for provisioning to work.
-        if let Err(e) = set_permissions(&temp_path) {
-            error!("Failed to set permissions! \n Error: {}", e.to_string());
-        }
+        set_permissions(&temp_path);
     }
 
     let temp_path_str = temp_path.to_str().ok_or(WorkerError::Gpg)?;
@@ -270,10 +264,10 @@ pub fn check_card() -> Result<String, WorkerError> {
     for (i, &item) in out_split.iter().enumerate() {
         if item == "Serial:" {
             if let Some(serial) = out_split.get(i + 1) {
-                return Ok(serial.to_string());
-            } else {
-                return Err(WorkerError::SerialNotFound);
+                return Ok((*serial).to_string());
             }
+
+            return Err(WorkerError::SerialNotFound);
         }
     }
     Err(WorkerError::SerialNotFound)
@@ -297,9 +291,8 @@ pub fn get_fingerprint() -> Result<String, WorkerError> {
             Some(fingerprint) => Ok(fingerprint.to_string()),
             None => Err(WorkerError::Gpg),
         };
-    } else {
-        Err(WorkerError::Gpg)
     }
+    Err(WorkerError::Gpg)
 }
 
 #[derive(Serialize, Debug)]
