@@ -51,7 +51,7 @@ See the [documentation](https://defguard.gitbook.io) for more information.
 
 ## Community and Support
 
-Find us on Matrix: [#defguard:teonite.com](https://matrix.to/#/#defguard:teonite.com)
+If you encounter any issues with Defguard, you can reach out to our community for support via [GitHub Discussions](https://github.com/DefGuard/defguard/discussions/new/choose)
 
 ## Contribution
 
